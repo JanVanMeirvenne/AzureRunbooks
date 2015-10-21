@@ -1,31 +1,47 @@
 workflow Failover-NewKid
 {
     param (
-        [Object]$RecoveryPlanContext
+        [Object] $RecoveryPlanContext
     )
-
+    Write-Output $RecoveryPlanContext
 	 #Read the VM GUID from the context
+	 $VM = InlineScript{
+	$VMGUID = "f30dff0c-a87c-464a-86df-6b6562a139e6"
     $VM = $RecoveryPlanContext.VmMap.$VMGUID
+	#$VM = ""|select CloudServiceName,RoleName
+	#$VM.RoleName = 'RedShirt-test'
+	#$VM.CloudServiceName = 'MainToDR-test'
+    
+	Write-Output $VM
+	 }
+	Connect-Azure
 
     if ($VM -ne $null)
     {
         # Invoke pipeline commands within an InlineScript
-		
-        $EndpointStatus = InlineScript {
-            # Invoke the necessary pipeline commands to add a Azure Endpoint to a specified Virtual Machine
+
+        [String] $IP = InlineScript{
+			            # Invoke the necessary pipeline commands to add a Azure Endpoint to a specified Virtual Machine
             # This set of commands includes: Get-AzureVM | Add-AzureEndpoint | Update-AzureVM (including necessary parameters)
-			Connect-Azure
+			
             $Item = Get-AzureVM -ServiceName $Using:VM.CloudServiceName -Name $Using:VM.RoleName
-            $Item|Add-AzureEndpoint -Name "NewKidWebsite" -Protocol "TCP" -PublicPort '80' -LocalPort '80'
-			$Item|Add-AzureEndpoint -Name "NewKidRDP" -Protocol "TCP" -PublicPort '3389' -LocalPort '3389'
-            $Item|Update-AzureVM
-			CheckPoint
-			$IP = $Item.IPAddress
+            $Item|Add-AzureEndpoint -Name "NewKidWebsite" -Protocol "TCP" -PublicPort '80' -LocalPort '80'-EA SilentlyContinue|out-null
+			$Item|Update-AzureVM -EA SilentlyContinue|out-null
+			$Item|Add-AzureEndpoint -Name "NewKidRDP" -Protocol "TCP" -PublicPort '3389' -LocalPort '3389' -EA SilentlyContinue|out-null
+            $Item|Update-AzureVM -EA SilentlyContinue|out-null
+
+			$IP = (Get-AzureDeployment -ServiceName $Using:VM.CloudServiceName -Slot Production).VirtualIPs.Address
+			return $IP
+		}
+        Checkpoint-Workflow
+           
+        
+		Parallel{
+			
 			Set-NamecheapDNSRecord -IP $IP -Record 'NewKid'
-			CheckPoint
-			$params = @{"Zone"="JVM-NET.COM";"Record"="NewKid";"IP"=$IP}
+			CheckPoint-Workflow
+			$params = @{"Zone"="JVM-NET.COM";"Record"="NewKid";"IP"="$IP"}
 			Start-AzureAutomationRunbook –AutomationAccountName "jvm-net-sma" –Name "Set-LocalDNSRecord" –Parameters $params -RunOn 'Azure01'
-            Write-Output $Status
-        }
-    }
+		}
+	}
 }
