@@ -3,19 +3,19 @@ workflow Failover-NewKid
     param (
         [Object] $RecoveryPlanContext
     )
-    Write-Output $RecoveryPlanContext
+    Write-Debug $RecoveryPlanContext
 	 #Read the VM GUID from the context
-	 $VM = InlineScript{
+	
 	$VMGUID = "f30dff0c-a87c-464a-86df-6b6562a139e6"
     $VM = $RecoveryPlanContext.VmMap.$VMGUID
 	#$VM = ""|select CloudServiceName,RoleName
 	#$VM.RoleName = 'RedShirt-test'
 	#$VM.CloudServiceName = 'MainToDR-test'
     
-	Write-Output $VM
-	 }
-	Connect-Azure
-
+	Write-Debug $VM
+	 
+	Connect-Azure|out-null
+	Write-Verbose $VM
     if ($VM -ne $null)
     {
         # Invoke pipeline commands within an InlineScript
