@@ -10,6 +10,11 @@ workflow Set-NamecheapDNSRecord
     if($Password -eq $null){
         $Password = Get-AutomationVariable -Name 'JVM-NET Dynamic DNS Namecheap Password'
     }
+	
+	if($IP -eq $null){
+		$Output = Get-PublicIP
+		$IP = [String] $Output
+	}
     $Output = InlineScript{
        $dnshost = $Using:Record
        $dnsdomain = $Using:Domain
