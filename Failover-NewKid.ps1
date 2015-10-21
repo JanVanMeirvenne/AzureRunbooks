@@ -3,21 +3,31 @@ workflow Failover-NewKid
     param (
         [Object] $RecoveryPlanContext
     )
-    Write-Debug $RecoveryPlanContext
-	 #Read the VM GUID from the context
+    
+	if($RecoveryPlanContext -eq $null){
+		Write-Error "Recovery Plan Context Not Found"
+	} else {
+		Write-Verbose $RecoveryPlanContext
+	}
 	
 	$VMGUID = "f30dff0c-a87c-464a-86df-6b6562a139e6"
+	
     $VM = $RecoveryPlanContext.VmMap.$VMGUID
 	#$VM = ""|select CloudServiceName,RoleName
 	#$VM.RoleName = 'RedShirt-test'
 	#$VM.CloudServiceName = 'MainToDR-test'
-    
-	Write-Debug $VM
+    if($VM -eq $null){
+		Write-Error "VM $VMGUID not found in context"
+	} else {
+		Write-Verbose $VM
+	}
+	
 	 
-	Connect-Azure|out-null
-	Write-Verbose $VM
+
     if ($VM -ne $null)
     {
+		Connect-Azure
+		
         # Invoke pipeline commands within an InlineScript
 
         [String] $IP = InlineScript{
