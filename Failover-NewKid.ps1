@@ -50,8 +50,10 @@ workflow Failover-NewKid
 			
 			Set-NamecheapDNSRecord -IP $IP -Record 'NewKid'
 			CheckPoint-Workflow
-			$params = @{"Zone"="JVM-NET.COM";"Record"="NewKid";"IP"="$IP"}
-			Start-AzureAutomationRunbook –AutomationAccountName "jvm-net-sma" –Name "Set-LocalDNSRecordWF" –Parameters $params -RunOn 'Azure01'|out-null
+			InlineScipt{
+				$params = @{"Zone"="JVM-NET.COM";"Record"="NewKid";"IP"="$UsingIP"}
+				Start-AzureAutomationRunbook –AutomationAccountName "jvm-net-sma" –Name "Set-LocalDNSRecordWF" –Parameters $params -RunOn 'Azure01'|out-null
+			}
 		}
 	}
 }
